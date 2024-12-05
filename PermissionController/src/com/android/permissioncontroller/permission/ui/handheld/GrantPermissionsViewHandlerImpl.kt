@@ -28,6 +28,7 @@ import android.provider.Settings
 import android.text.method.LinkMovementMethod
 import android.transition.ChangeBounds
 import android.transition.TransitionManager
+import android.util.Log
 import android.util.SparseIntArray
 import android.view.Gravity
 import android.view.LayoutInflater
@@ -70,6 +71,7 @@ import com.android.permissioncontroller.permission.ui.GrantPermissionsActivity.N
 import com.android.permissioncontroller.permission.ui.GrantPermissionsActivity.NO_UPGRADE_BUTTON
 import com.android.permissioncontroller.permission.ui.GrantPermissionsActivity.NO_UPGRADE_OT_AND_DONT_ASK_AGAIN_BUTTON
 import com.android.permissioncontroller.permission.ui.GrantPermissionsActivity.NO_UPGRADE_OT_BUTTON
+import com.android.permissioncontroller.permission.ui.GrantPermissionsActivity.isAllowButton
 import com.android.permissioncontroller.permission.ui.GrantPermissionsViewHandler
 import com.android.permissioncontroller.permission.ui.GrantPermissionsViewHandler.CANCELED
 import com.android.permissioncontroller.permission.ui.GrantPermissionsViewHandler.DENIED
@@ -386,12 +388,25 @@ class GrantPermissionsViewHandlerImpl(
     private fun updateButtons() {
         for (i in 0 until BUTTON_RES_ID_TO_NUM.size) {
             val pos = BUTTON_RES_ID_TO_NUM.valueAt(i)
-            buttons[pos]?.visibility =
-                if (buttonVisibilities[pos]) {
-                    View.VISIBLE
-                } else {
-                    View.GONE
+            val button = buttons[pos]!!
+            val buttonVisible = buttonVisibilities[pos]
+
+            button.visibility = if (buttonVisible) View.VISIBLE else View.GONE
+
+            if (buttonVisible && isAllowButton(pos)) {
+                button.isEnabled = false
+
+                val shouldLog = Log.isLoggable(TAG, Log.DEBUG)
+                val suffix = "$pos, group $groupName"
+                if (shouldLog) Log.d(TAG, "temporarily disabled button $suffix")
+
+                val action = Runnable {
+                    button.isEnabled = true
+                    if (shouldLog) Log.d(TAG, "enabled button $suffix")
                 }
+                button.postDelayed(action, 1000)
+            }
+
             if (pos == ALLOW_FOREGROUND_BUTTON && buttonVisibilities[pos]) {
                 if (
                     locationVisibilities[LOCATION_ACCURACY_LAYOUT] &&
